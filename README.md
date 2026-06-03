@@ -95,7 +95,7 @@ python main.py
 详细技术选型请参考 [技术方案文档](技术方案文档.md)。
 
 ---
-
+## 🏗️ 项目结构
 ```plaintext
 AIPersonalAssistant/
 ├── config/                 # 配置管理
