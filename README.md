@@ -59,12 +59,12 @@ cd AIPersonalAssistant
 ```
 2. **创建虚拟环境**
 ```bash
-python -m venv venv 
-source venv/bin/activate # Linux/Mac
+python -m .venv .venv 
+source .venv/bin/activate # Linux/Mac
 ```
 或者
 ```bash
-venv\Scripts\activate # Windows
+.venv\Scripts\activate # Windows
  ```
 3. **安装依赖**
 ```bash
@@ -194,7 +194,8 @@ pytest --cov=. --cov-report=html
 ## 📞 联系方式
 
 - 项目Issues：[提交问题](../../issues)
-- 邮箱：your-email@example.com
+- 邮箱：[firstname.dh2005@outlook.com](mailto:firstname.dh2005@outlook.com)
+
 
 ---
 
