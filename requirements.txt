@@ -1,4 +1,4 @@
-# LangChain & LangGraph
+# Core Framework - LangChain & LangGraph
 langchain==0.2.16
 langchain-core==0.2.40
 langchain-community==0.2.16
@@ -8,10 +8,10 @@ langgraph==0.2.20
 # OpenAI SDK
 openai==1.40.1
 
-# Microsoft Graph API
-msgraph-sdk==1.0.0
-azure-identity==1.15.0
-microsoft-kiota-authentication-azure==1.0.0
+# Google API
+google-api-python-client==2.120.0
+google-auth-httplib2==0.2.0
+google-auth-oauthlib==1.2.0
 
 # Time Processing
 python-dateutil==2.9.0.post0

@@ -1,155 +1,204 @@
 """
-Microsoft Graph API 认证服务
+Google OAuth Authentication Service
 
-负责Microsoft Graph的身份验证和授权管理
-支持Calendar API和Mail API的认证
+Handles Google API authentication and authorization management
+Supports Calendar API and Gmail API authentication
 """
 
 import os
-from typing import Optional
-from azure.identity import InteractiveBrowserCredential
-from msgraph.core import GraphClient
+import pickle
+from pathlib import Path
+from typing import Optional, List
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
 from loguru import logger
-from config.settings import settings
 
 
 class AuthService:
-    """Microsoft Graph OAuth认证服务"""
+    """Google OAuth Authentication Service"""
 
-    # Microsoft Graph API所需权限范围
+    # Google API required scopes
     SCOPES = [
-        'User.Read',                # 读取用户信息
-        'Calendars.ReadWrite',      # 日历读写
-        'Mail.Send',                # 发送邮件
-        'Mail.Read'                 # 读取邮件（获取参会人）
+        'https://www.googleapis.com/auth/calendar',
+        'https://www.googleapis.com/auth/gmail.send',
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/userinfo.profile'
     ]
 
-    def __init__(self,
-                 client_id: str = None,
-                 tenant_id: str = 'common'):
+    def __init__(self, credentials_file: str = "credentials.json",
+                 token_file: str = "token.pickle"):
         """
-        初始化认证服务
+        Initialize authentication service
 
         Args:
-            client_id: Azure应用客户端ID
-            tenant_id: 租户ID（默认common，支持多租户）
+            credentials_file: OAuth credentials file path
+            token_file: Token cache file path
         """
-        self.client_id = client_id or os.getenv('AZURE_CLIENT_ID')
-        self.tenant_id = tenant_id
-        self._credential: Optional[InteractiveBrowserCredential] = None
-        self._graph_client: Optional[GraphClient] = None
+        self.credentials_file = Path(credentials_file)
+        self.token_file = Path(token_file)
+        self._credentials: Optional[Credentials] = None
 
-        logger.info("AuthService 初始化 (Microsoft Graph)")
-        logger.debug(f"Client ID: {self.client_id}")
-        logger.debug(f"Tenant ID: {self.tenant_id}")
-        logger.debug(f"Scopes: {self.SCOPES}")
+        logger.info("AuthService initialized (Google)")
+        logger.debug(f"Credentials file: {self.credentials_file}")
+        logger.debug(f"Token file: {self.token_file}")
 
-    def authenticate(self) -> GraphClient:
+    def authenticate(self) -> Credentials:
         """
-        执行认证流程
+        Execute authentication flow
 
         Returns:
-            GraphClient: Microsoft Graph客户端
+            Credentials: Google OAuth credentials object
 
         Raises:
-            ValueError: 缺少必要的配置
-            Exception: 认证失败
+            FileNotFoundError: credentials.json not found
+            Exception: Authentication failed
         """
-        # 检查配置
-        if not self.client_id:
-            logger.error("❌ 缺少AZURE_CLIENT_ID配置")
-            logger.error("请在.env文件中设置AZURE_CLIENT_ID")
-            raise ValueError(
-                "Azure Client ID is required.\n"
-                "Please set AZURE_CLIENT_ID in .env file"
+        if not self.credentials_file.exists():
+            logger.error(f"❌ credentials.json not found: {self.credentials_file}")
+            logger.error("Please download from Google Cloud Console")
+            raise FileNotFoundError(
+                f"Credentials file not found: {self.credentials_file}\n"
+                "Please download it from Google Cloud Console"
             )
 
-        try:
-            logger.info("🔐 启动Microsoft Graph认证流程...")
+        credentials = self._load_cached_token()
 
-            # 创建交互式浏览器凭据
-            self._credential = InteractiveBrowserCredential(
-                tenant_id=self.tenant_id,
-                client_id=self.client_id
-            )
+        if credentials and self._is_token_valid(credentials):
+            logger.info("✅ Using cached token")
+            self._credentials = credentials
+            return credentials
 
-            logger.info("🌐 即将打开浏览器进行授权...")
-            logger.info("请使用Microsoft账号登录并授权")
+        logger.info("🔐 Starting OAuth authentication flow...")
+        credentials = self._perform_oauth_flow()
 
-            # 创建Graph客户端
-            self._graph_client = GraphClient(credential=self._credential)
+        self._save_token(credentials)
 
-            # 测试连接
-            test_result = self._graph_client.get('/me')
-            if test_result.status_code == 200:
-                user_info = test_result.json()
-                logger.info(f"✅认证成功: {user_info.get('displayName')}")
-                logger.info(f"   邮箱: {user_info.get('mail')}")
-            else:
-                logger.warning(f"⚠️  认证测试返回状态码: {test_result.status_code}")
+        self._credentials = credentials
+        logger.info("✅ OAuth authentication successful")
 
-            logger.info("✅ Microsoft Graph认证成功")
-            return self._graph_client
+        return credentials
 
-        except Exception as e:
-            logger.error(f"❌ 认证失败: {e}")
-            raise
+    def get_credentials(self) -> Optional[Credentials]:
+        """Get current credentials (if authenticated)"""
+        if self._credentials is None:
+            logger.warning("⚠️  Not authenticated, call authenticate() first")
+        return self._credentials
 
-    def get_graph_client(self) -> Optional[GraphClient]:
-        """
-        获取Graph客户端（如果已认证）
+    def refresh_token_if_needed(self) -> bool:
+        """Refresh token if needed"""
+        if self._credentials is None:
+            return False
 
-        Returns:
-            GraphClient或None
-        """
-        if self._graph_client is None:
-            logger.warning("⚠️  尚未进行认证，请先调用authenticate()")
-        return self._graph_client
+        if not self._credentials.valid:
+            logger.info("🔄 Token expired, refreshing...")
+            try:
+                self._credentials.refresh(Request())
+                self._save_token(self._credentials)
+                logger.info("✅ Token refreshed")
+                return True
+            except Exception as e:
+                logger.error(f"❌ Token refresh failed: {e}")
+                return False
 
-    def get_credential(self):
-        """
-        获取凭据对象
-
-        Returns:
-            InteractiveBrowserCredential或None
-        """
-        return self._credential
+        return True
 
     def revoke_access(self):
-        """撤销授权（清除缓存）"""
-        self._credential = None
-        self._graph_client = None
-        logger.info("🗑️  已撤销授权")
+        """Revoke authorization (delete cached token)"""
+        if self.token_file.exists():
+            self.token_file.unlink()
+            logger.info("🗑️  Authorization revoked, token deleted")
 
-    def get_user_email(self) -> Optional[str]:
-        """
-        获取当前授权用户的邮箱地址
+        self._credentials = None
 
-        Returns:
-            用户邮箱或None
-        """
-        if self._graph_client is None:
-            logger.warning("⚠️  尚未认证")
+    def _load_cached_token(self) -> Optional[Credentials]:
+        """Load token from cache file"""
+        if not self.token_file.exists():
+            logger.debug("No cached token file found")
             return None
 
         try:
-            response = self._graph_client.get('/me')
-            if response.status_code == 200:
-                user_info = response.json()
-                return user_info.get('mail') or user_info.get('userPrincipalName')
+            with open(self.token_file, 'rb') as token_file:
+                credentials = pickle.load(token_file)
+                logger.debug("Successfully loaded cached token")
+                return credentials
         except Exception as e:
-            logger.warning(f"⚠️  获取用户邮箱失败: {e}")
+            logger.warning(f"⚠️  Failed to load cached token: {e}")
+            return None
+
+    def _is_token_valid(self, credentials: Credentials) -> bool:
+        """Check if token is valid"""
+        if credentials is None:
+            return False
+
+        if not credentials.valid:
+            logger.debug("Token invalid or expired")
+            return False
+
+        if credentials.scopes != self.SCOPES:
+            logger.warning("⚠️  Token scope mismatch")
+            return False
+
+        logger.debug("Token validation passed")
+        return True
+
+    def _perform_oauth_flow(self) -> Credentials:
+        """Execute OAuth authorization flow"""
+        try:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                self.credentials_file,
+                self.SCOPES
+            )
+
+            logger.info("🌐 Opening browser for authorization...")
+            logger.info("Please login to Google account and authorize")
+
+            credentials = flow.run_local_server(
+                port=0,
+                open_browser=True
+            )
+
+            logger.info("✅ Browser authorization completed")
+            return credentials
+
+        except Exception as e:
+            logger.error(f"❌ OAuth authentication failed: {e}")
+            raise
+
+    def _save_token(self, credentials: Credentials):
+        """Save token to cache file"""
+        try:
+            with open(self.token_file, 'wb') as token_file:
+                pickle.dump(credentials, token_file)
+
+            logger.info(f"💾 Token saved to: {self.token_file}")
+
+            if os.name != 'nt':
+                os.chmod(self.token_file, 0o600)
+
+        except Exception as e:
+            logger.error(f"❌ Failed to save token: {e}")
+            raise
+
+    def get_user_email(self) -> Optional[str]:
+        """Get authorized user's email address"""
+        if self._credentials is None:
+            logger.warning("⚠️  Not authenticated")
+            return None
+
+        if hasattr(self._credentials, 'id_token'):
+            import jwt
+            try:
+                decoded = jwt.decode(
+                    self._credentials.id_token,
+                    options={"verify_signature": False}
+                )
+                return decoded.get('email')
+            except Exception as e:
+                logger.warning(f"⚠️  Failed to parse user email: {e}")
 
         return None
 
 
-# 全局认证服务实例
-def create_auth_service():
-    """创建认证服务实例"""
-    from config.settings import settings
-    return AuthService(
-        client_id=settings.AZURE_CLIENT_ID,
-        tenant_id=settings.AZURE_TENANT_ID
-    )
-
-auth_service = create_auth_service()
+# Global auth service instance
+auth_service = AuthService()
