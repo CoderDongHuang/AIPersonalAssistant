@@ -12,11 +12,11 @@ langgraph==0.2.20
 openai==1.40.1
 
 # ============================================
-# Google API
+# Microsoft Graph API (替代Google API)
 # ============================================
-google-api-python-client==2.120.0
-google-auth-httplib2==0.2.0
-google-auth-oauthlib==1.2.0
+msgraph-sdk==1.0.0
+azure-identity==1.15.0
+microsoft-kiota-authentication-azure==1.0.0
 
 # ============================================
 # 时间处理
