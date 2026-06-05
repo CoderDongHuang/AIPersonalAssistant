@@ -1,15 +1,15 @@
 """
-业务服务层模块
+Business Services Module
 
-提供高级业务逻辑封装
+Provides high-level business logic encapsulation
 """
 
-from services.auth_service import AuthService
-from services.notification_service import NotificationService
-from services.template_service import TemplateService
+from services.local_calendar import LocalCalendarService, local_calendar
+from services.smtp_email import SMTPEmailService, smtp_email
 
 __all__ = [
-    "AuthService",
-    "NotificationService",
-    "TemplateService"
+    "LocalCalendarService",
+    "local_calendar",
+    "SMTPEmailService",
+    "smtp_email"
 ]

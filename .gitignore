@@ -69,3 +69,5 @@ htmlcov/
 
 # pyenv
 .python-version
+
+calendar.db
