@@ -8,11 +8,6 @@ langgraph==0.2.20
 # OpenAI SDK
 openai==1.40.1
 
-# Google API
-google-api-python-client==2.120.0
-google-auth-httplib2==0.2.0
-google-auth-oauthlib==1.2.0
-
 # Time Processing
 python-dateutil==2.9.0.post0
 pytz==2024.1

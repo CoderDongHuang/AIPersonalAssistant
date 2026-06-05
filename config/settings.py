@@ -1,6 +1,6 @@
 """
-应用配置管理
-使用 Pydantic Settings 进行环境变量管理和验证
+Application Configuration Management
+Uses Pydantic Settings for environment variable management and validation
 """
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -8,16 +8,17 @@ from typing import Optional
 
 
 class Settings(BaseSettings):
-    """应用配置类"""
+    """Application settings class"""
 
-    # OpenAI Configuration
-    OPENAI_API_KEY: str
+    # LLM Configuration (DeepSeek compatible with OpenAI SDK)
+    DEEPSEEK_API_KEY: str = ""
+    DEEPSEEK_MODEL: str = "deepseek-chat"
+
+    # OpenAI Compatible Configuration
+    OPENAI_BASE_URL: str = "https://api.deepseek.com/v1"
+    OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4-turbo"
     OPENAI_TEMPERATURE: float = 0.7
-
-    # Microsoft Graph API Configuration (替代Google API)
-    AZURE_CLIENT_ID: str
-    AZURE_TENANT_ID: str = "common"
 
     # Application Settings
     APP_ENV: str = "development"
@@ -33,22 +34,40 @@ class Settings(BaseSettings):
 
     # Email Settings
     EMAIL_NOTIFICATION_ENABLED: bool = True
+    EMAIL_SMTP_SERVER: str = ""
+    EMAIL_SMTP_PORT: int = 587
+    EMAIL_SENDER: str = ""
+    EMAIL_PASSWORD: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
-        case_sensitive=True,
+        case_sensitive=False,
         extra="ignore"
     )
 
+    def get_llm_api_key(self) -> str:
+        """Get LLM API key (prefer DeepSeek, fallback to OpenAI)"""
+        return self.DEEPSEEK_API_KEY or self.OPENAI_API_KEY
+
+    def get_llm_model(self) -> str:
+        """Get LLM model name"""
+        if self.DEEPSEEK_API_KEY:
+            return self.DEEPSEEK_MODEL
+        return self.OPENAI_MODEL
+
+    def get_openai_base_url(self) -> str:
+        """Get OpenAI-compatible API base URL"""
+        return self.OPENAI_BASE_URL
+
     def is_production(self) -> bool:
-        """检查是否为生产环境"""
+        """Check if running in production environment"""
         return self.APP_ENV == "production"
 
     def is_development(self) -> bool:
-        """检查是否为开发环境"""
+        """Check if running in development environment"""
         return self.APP_ENV == "development"
 
 
-# 全局配置实例
+# Global settings instance
 settings = Settings()
