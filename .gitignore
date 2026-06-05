@@ -39,7 +39,11 @@ ENV/
 .env.local
 .env.*.local
 
-# Google API Credentials
+# Microsoft Authentication Cache
+.msal_cache.bin
+token_cache.bin
+
+# Google API Credentials (保留以防需要)
 credentials.json
 token.pickle
 service-account-key.json

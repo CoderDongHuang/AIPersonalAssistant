@@ -15,10 +15,9 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4-turbo"
     OPENAI_TEMPERATURE: float = 0.7
 
-    # Google API Configuration
-    GOOGLE_PROJECT_ID: str
-    GOOGLE_CLIENT_ID: str
-    GOOGLE_CLIENT_SECRET: str
+    # Microsoft Graph API Configuration (替代Google API)
+    AZURE_CLIENT_ID: str
+    AZURE_TENANT_ID: str = "common"
 
     # Application Settings
     APP_ENV: str = "development"
