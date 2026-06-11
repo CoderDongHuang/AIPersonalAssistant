@@ -6,6 +6,7 @@ No external dependencies required, works offline
 """
 
 import sqlite3
+import os
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any
 from pathlib import Path
@@ -15,16 +16,25 @@ from loguru import logger
 class LocalCalendarService:
     """Local calendar service using SQLite"""
 
-    def __init__(self, db_path: str = "calendar.db"):
+    def __init__(self, db_path: str = None):
         """Initialize local calendar service"""
+        if db_path is None:
+            # Allow override via environment variable (useful for CI/Windows)
+            db_path = os.environ.get("CALENDAR_DB_PATH", "calendar.db")
         self.db_path = Path(db_path)
         self._init_database()
         self._seed_sample_data()
         logger.info(f"LocalCalendarService initialized: {self.db_path}")
 
+    def _get_conn(self) -> sqlite3.Connection:
+        """Get a SQLite connection with WAL mode + timeout (Windows-safe)."""
+        conn = sqlite3.connect(str(self.db_path), timeout=10)
+        conn.execute("PRAGMA journal_mode=WAL")
+        return conn
+
     def _init_database(self):
         """Initialize database schema"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         cursor = conn.cursor()
 
         cursor.execute('''
@@ -88,7 +98,7 @@ class LocalCalendarService:
         ]
 
 
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         cursor = conn.cursor()
 
         for event in sample_events:
@@ -114,7 +124,7 @@ class LocalCalendarService:
 
     def _has_events(self) -> bool:
         """Check if database has any events"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         cursor = conn.cursor()
         cursor.execute("SELECT COUNT(*) FROM events")
         count = cursor.fetchone()[0]
@@ -132,7 +142,7 @@ class LocalCalendarService:
         Returns:
             List of event dictionaries
         """
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
@@ -159,7 +169,7 @@ class LocalCalendarService:
         Returns:
             Event dictionary or None
         """
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
@@ -186,7 +196,7 @@ class LocalCalendarService:
         Returns:
             True if successful, False otherwise
         """
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         cursor = conn.cursor()
 
         # Build dynamic UPDATE query
@@ -238,7 +248,7 @@ class LocalCalendarService:
         Returns:
             Event ID
         """
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         cursor = conn.cursor()
 
         event_id = event.get('id', f"evt_{int(datetime.now().timestamp())}")
@@ -276,7 +286,7 @@ class LocalCalendarService:
         Returns:
             True if successful, False otherwise
         """
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         cursor = conn.cursor()
 
         cursor.execute("DELETE FROM events WHERE id = ?", (event_id,))
@@ -305,7 +315,7 @@ class LocalCalendarService:
         Returns:
             List of conflicting events
         """
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_conn()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
