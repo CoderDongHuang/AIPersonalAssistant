@@ -1,11 +1,13 @@
 """
-Personal AI Assistant - 主入口文件
+Personal AI Assistant — 主入口文件
 
-基于自然语言的个人效率助手，集成Google Calendar与Gmail API。
-支持复杂时间推理和冲突检测，通过Function Calling实现多工具协同。
+基于自然语言的个人效率助手，本地SQLite日历 + SMTP邮件 + DeepSeek LLM。
+支持复杂时间推理和冲突检测，通过LangGraph构建有状态Agent工作流。
 
 Usage:
-    python main.py
+    python main.py                        # 交互式模式
+    python main.py "明天有什么安排？"       # 单指令模式
+    python main.py --check                # 检查环境配置
 """
 
 import sys
@@ -13,82 +15,93 @@ from loguru import logger
 from config import setup_logging, settings
 
 
-def check_dependencies():
-    """检查依赖项是否正确安装"""
-    try:
-        import langchain
-        import langgraph
-        import openai
-        from google.oauth2.credentials import Credentials
-        logger.info("✅ 所有依赖项检查通过")
-        return True
-    except ImportError as e:
-        logger.error(f"❌ 缺少依赖: {e}")
-        logger.error("请运行: pip install -r requirements.txt")
-        return False
-
-
 def check_environment():
-    """检查环境变量配置"""
-    missing_vars = []
+    """Check environment configuration and print a summary."""
+    issues = []
 
-    required_vars = [
-        "OPENAI_API_KEY",
-        "GOOGLE_PROJECT_ID",
-        "GOOGLE_CLIENT_ID",
-        "GOOGLE_CLIENT_SECRET"
-    ]
+    # Check LLM
+    if settings.get_llm_api_key():
+        logger.info(f"✅ LLM已配置: {settings.get_llm_model()}")
+    else:
+        logger.warning("⚠️  LLM未配置，将使用规则匹配降级模式")
 
-    for var in required_vars:
-        if not hasattr(settings, var) or not getattr(settings, var):
-            missing_vars.append(var)
+    # Check email
+    if settings.EMAIL_SENDER:
+        logger.info(f"✅ 邮件已配置: {settings.EMAIL_SENDER}")
+    else:
+        logger.info("ℹ️  邮件未配置，通知功能将优雅降级")
 
-    if missing_vars:
-        logger.warning("⚠️  以下环境变量未配置:")
-        for var in missing_vars:
-            logger.warning(f"   - {var}")
-        logger.warning("请复制 .env.example 为 .env 并填写配置")
-        return False
-
-    logger.info("✅ 环境变量检查通过")
     return True
 
 
+def run_interactive():
+    """Launch the interactive CLI."""
+    from cli import interactive_mode
+    interactive_mode()
+
+
+def run_single_command(command: str):
+    """Run a single command via the agent and print the result."""
+    from cli import run_single_command
+    run_single_command(command)
+
+
 def main():
-    """主函数"""
-    # 初始化日志系统
+    """Main entry point."""
+    # Initialize logging
     setup_logging()
 
     logger.info("=" * 60)
     logger.info("🤖 Personal AI Assistant 启动中...")
     logger.info("=" * 60)
 
-    # 检查依赖
-    if not check_dependencies():
-        sys.exit(1)
+    # Check environment silently
+    check_environment()
 
-    # 检查环境
-    if not check_environment():
-        sys.exit(1)
+    logger.info(f"📊 环境: {settings.APP_ENV} | 时区: {settings.DEFAULT_TIMEZONE}")
+    logger.info(f"🤖 LLM: {settings.get_llm_model() or '规则匹配模式'}")
+    logger.info(f"📧 邮件: {'已配置' if settings.EMAIL_SENDER else '未配置'}")
 
-    logger.info(f"📊 当前环境: {settings.APP_ENV}")
-    logger.info(f"🕐 默认时区: {settings.DEFAULT_TIMEZONE}")
-    logger.info(f"🤖 OpenAI模型: {settings.OPENAI_MODEL}")
+    # Parse command-line arguments
+    if len(sys.argv) > 1:
+        first_arg = sys.argv[1]
 
-    # TODO: 后续在这里初始化Agent和工作流
-    logger.info("✨ Personal AI Assistant 已就绪！")
-    logger.info("⚠️  Agent功能开发中，敬请期待...")
+        if first_arg in ['--check', '-c']:
+            # Environment check mode
+            from verify_setup import main as verify_main
+            sys.exit(verify_main())
+        elif first_arg in ['--help', '-h']:
+            print_usage()
+        else:
+            # Treat all args as a natural language command
+            command = " ".join(sys.argv[1:])
+            run_single_command(command)
+    else:
+        # Interactive mode
+        run_interactive()
 
-    print("\n" + "=" * 60)
-    print("🎉 Personal AI Assistant v1.0")
-    print("=" * 60)
-    print("\n项目初始化完成！")
-    print("\n下一步:")
-    print("  1. 配置 Google API 认证")
-    print("  2. 实现核心工具模块")
-    print("  3. 构建 LangGraph 工作流")
-    print("\n详细文档请查看: 技术方案文档.md")
-    print("=" * 60 + "\n")
+
+def print_usage():
+    """Print usage information."""
+    print("""
+╔═══════════════════════════════════════════════════════════════╗
+║           🤖 Personal AI Assistant                           ║
+╠═══════════════════════════════════════════════════════════════╣
+║                                                               ║
+║  Usage:                                                       ║
+║    python main.py                 交互式模式                   ║
+║    python main.py "明天有什么安排？"  单指令模式                ║
+║    python main.py --check          检查环境配置                ║
+║    python main.py --help           显示此帮助                  ║
+║                                                               ║
+║  Also available:                                              ║
+║    python cli.py                   CLI 交互界面                ║
+║    python test_workflow.py         工作流端到端测试            ║
+║    python verify_setup.py          项目环境验证                ║
+║    pytest tests/unit/ -v           运行81个单元测试            ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
+""")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=65.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "ai-personal-assistant"
+version = "1.0.0"
+description = "基于自然语言的个人效率Agent — 本地日历 + 邮件自动化"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "CoderDongHuang", email = "firstname.dh2005@outlook.com"},
+]
+keywords = ["ai-assistant", "calendar", "email", "langgraph", "deepseek"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/unit", "tests/integration"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+
+[tool.flake8]
+max-line-length = 100
+exclude = ["venv", ".git", "__pycache__"]

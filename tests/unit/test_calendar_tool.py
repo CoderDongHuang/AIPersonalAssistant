@@ -233,8 +233,17 @@ class TestCalendarTool:
         assert len(events) >= 3
 
     def test_tool_check_conflicts(self):
-        event = self.tool.get_event("evt_001")
+        # Find any existing event (data may have been modified by integration tests)
+        now = datetime.now()
+        events = self.tool.list_events(
+            now - timedelta(days=1), now + timedelta(days=30),
+        )
+        if not events:
+            pytest.skip("No events available for conflict check test")
+
+        event = events[0]
         conflicts = self.tool.check_conflicts(
             event["start_time"], event["end_time"],
         )
+        # An event should conflict with itself
         assert len(conflicts) >= 1

@@ -1,36 +1,30 @@
 # Core Framework - LangChain & LangGraph
-langchain==0.2.16
-langchain-core==0.2.40
-langchain-community==0.2.16
-langchain-openai==0.1.23
-langgraph==0.2.20
+langchain>=0.2.16
+langchain-core>=0.2.40
+langgraph>=0.2.20
 
-# OpenAI SDK
-openai==1.40.1
+# OpenAI SDK (compatible with DeepSeek API)
+openai>=1.40.0
 
 # Time Processing
-python-dateutil==2.9.0.post0
-pytz==2024.1
+pytz>=2024.1
 
 # Data Validation - Pydantic 2.x
-pydantic==2.9.2
-pydantic-settings==2.4.0
+pydantic>=2.7.0
+pydantic-settings>=2.2.0
 
 # Utilities
-python-dotenv==1.0.1
-requests==2.32.3
-loguru==0.7.2
+python-dotenv>=1.0.0
+loguru>=0.7.0
+
+# CLI Enhancement
+rich>=13.0.0
 
 # Testing
-pytest==8.3.2
-pytest-asyncio==0.23.8
-pytest-cov==5.0.0
+pytest>=8.2.0
+pytest-cov>=5.0.0
 
-# Code Quality
-black==24.8.0
-flake8==7.1.1
-mypy==1.11.1
-
-# CLI Enhancement (optional)
-rich==13.7.1
-typer==0.12.3
+# Code Quality (dev)
+black>=24.0.0
+flake8>=7.0.0
+mypy>=1.10.0

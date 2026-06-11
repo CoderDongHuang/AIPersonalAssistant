@@ -11,6 +11,7 @@ from email.mime.multipart import MIMEMultipart
 from typing import List, Optional
 from loguru import logger
 from config.settings import settings
+from utils.validators import validate_emails
 
 
 class SMTPEmailService:
@@ -64,10 +65,18 @@ class SMTPEmailService:
             logger.info(f"   Body: {body[:100]}...")
             return True  # Return True to not block workflow
 
+        # Validate recipient emails
+        valid_emails, invalid_emails = validate_emails(to_emails)
+        if invalid_emails:
+            logger.warning(f"⚠️  Invalid email addresses skipped: {invalid_emails}")
+        if not valid_emails:
+            logger.error("❌ No valid recipient email addresses")
+            return False
+
         try:
             msg = MIMEMultipart('alternative')
             msg['From'] = self.sender_email
-            msg['To'] = ', '.join(to_emails)
+            msg['To'] = ', '.join(valid_emails)
             msg['Subject'] = subject
 
             # Add plain text body
@@ -85,10 +94,10 @@ class SMTPEmailService:
             server.login(self.sender_email, self.sender_password)
 
             # Send email
-            server.sendmail(self.sender_email, to_emails, msg.as_string())
+            server.sendmail(self.sender_email, valid_emails, msg.as_string())
             server.quit()
 
-            logger.info(f"✅ Email sent to {len(to_emails)} recipients")
+            logger.info(f"✅ Email sent to {len(valid_emails)} recipients")
             return True
 
         except Exception as e:

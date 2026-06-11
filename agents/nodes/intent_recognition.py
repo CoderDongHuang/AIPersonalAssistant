@@ -16,24 +16,27 @@ except ImportError:
     logger.warning("OpenAI SDK not installed, using mock implementation")
     OpenAI = None
 
-
-INTENT_RECOGNITION_PROMPT = """你是一个智能日历助手的意图识别模块。分析用户输入，识别其意图。
+# Import prompt template from prompts module
+try:
+    from agents.prompts.intent_prompt import INTENT_RECOGNITION_PROMPT
+except ImportError:
+    # Fallback inline prompt if prompts module is unavailable
+    INTENT_RECOGNITION_PROMPT = """你是一个智能日历助手的意图识别模块。分析用户输入，识别其意图。
 
 支持的意图类型：
-1. query_events - 查询日历事件（如："明天有什么安排？"）
-2. reschedule_event - 重新安排会议（如："把周三的会议改到周五"）
-3. create_event - 创建新事件（如："下周一上午10点开会"）
-4. update_event - 更新事件信息（如："把会议室改成A"）
-5. delete_event - 删除事件（如："取消明天的会议"）
+1. query_events - 查询日历事件
+2. reschedule_event - 重新安排会议
+3. create_event - 创建新事件
+4. delete_event - 删除事件
 
 输出JSON格式：
 {{
     "action": "意图类型",
     "confidence": 0.0-1.0,
     "parameters": {{
-        "event_name": "事件名称（如果有）",
-        "source_time": "原始时间描述（如果是改期）",
-        "target_time": "目标时间描述（如果是改期）",
+        "event_name": "事件名称",
+        "source_time": "原始时间描述",
+        "target_time": "目标时间描述",
         "date": "日期描述",
         "time": "时间描述",
         "attendees": ["参会人列表"],
