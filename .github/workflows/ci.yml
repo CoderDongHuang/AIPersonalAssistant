@@ -58,16 +58,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Clean stale DB files
+        run: python -c "import os; [os.remove(f) for f in ['calendar.db','test_calendar.db'] if os.path.exists(f)]; print('DB cleanup done')"
+
       - name: Run unit tests
         run: python -m pytest tests/unit/ -v --tb=short --no-header
 
       - name: Run integration tests
-        run: python -m pytest tests/integration/ -v --tb=short --no-header
+        run: python -m pytest tests/integration/ -v --tb=long --no-header
 
       - name: Generate coverage report
         run: |
           python -m pytest tests/unit/ tests/integration/ \
-            --cov=. --cov-report=term-missing --ignore=venv -q
+            --cov=. --cov-report=term-missing --ignore=venv -q -p no:cacheprovider
 
   lint:
     name: Lint & Type Check
