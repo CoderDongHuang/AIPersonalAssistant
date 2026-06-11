@@ -76,23 +76,32 @@ class TimeParser:
         elif '后天' in expression:
             return (base_time + timedelta(days=2)).replace(hour=0, minute=0, second=0, microsecond=0)
 
-        # "下周X" / "这周X" / "周X"
+        # "下周X" / "这周X" / "周X" / "下星期X" / "星期X"
         week_match = re.search(r'(?:下|这|本)?周([一二三四五六日])', expression)
-        if week_match:
-            weekday_str = week_match.group(1)
-            weekday = self.WEEKDAYS.get(f'周{weekday_str}')
+        weekday_match = re.search(r'(?:下|这|本)?星期([一二三四五六日天])', expression)
+
+        if week_match or weekday_match:
+            if week_match:
+                weekday_str = week_match.group(1)
+                weekday = self.WEEKDAYS.get(f'周{weekday_str}')
+            else:
+                weekday_str = weekday_match.group(1)
+                if weekday_str == '天':
+                    weekday = 6  # Sunday
+                else:
+                    weekday = self.WEEKDAYS.get(f'星期{weekday_str}') or self.WEEKDAYS.get(f'周{weekday_str}')
 
             if weekday is not None:
                 current_weekday = base_time.weekday()
                 days_ahead = weekday - current_weekday
 
-                if '下周' in expression:
+                if '下周' in expression or '下星期' in expression:
                     days_ahead += 7
-                elif '这周' in expression or '本周' in expression:
+                elif '这周' in expression or '本周' in expression or '这星期' in expression or '本星期' in expression:
                     if days_ahead <= 0:
                         days_ahead += 7
                 else:
-                    # Just "周X" - assume next occurrence
+                    # Just "周X" or "星期X" - assume next occurrence
                     if days_ahead <= 0:
                         days_ahead += 7
 

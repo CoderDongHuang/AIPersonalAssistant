@@ -7,7 +7,7 @@
 ![LangGraph](https://img.shields.io/badge/LangGraph-0.0.x-orange.svg)
 ![Status](https://img.shields.io/badge/Status-Development-yellow.svg)
 
-**基于自然语言的个人效率Agent，集成Google Calendar与Gmail API**
+**基于自然语言的个人效率Agent，本地SQLite日历 + SMTP邮件，离线可用**
 
 [技术文档](技术方案文档.md) · [问题反馈](../../issues) · [功能建议](../../discussions)
 
@@ -46,8 +46,8 @@ Agent自动执行：
 ### 前置要求
 
 - Python 3.10+
-- Google Cloud Platform 账号
-- OpenAI API Key
+- DeepSeek API Key（可选，无Key时使用规则匹配降级）
+- SMTP邮箱账号（可选，用于邮件通知功能）
 
 ### 安装步骤
 
@@ -86,10 +86,10 @@ python main.py
 | 类别 | 技术 |
 |------|------|
 | **核心框架** | LangChain + LangGraph |
-| **LLM服务** | OpenAI GPT-4/GPT-3.5-turbo |
-| **日历API** | Google Calendar API v3 |
-| **邮件API** | Gmail API v1 |
-| **时间处理** | python-dateutil + pytz |
+| **LLM服务** | DeepSeek（兼容OpenAI SDK，支持规则降级） |
+| **日历存储** | SQLite（本地数据库，离线可用） |
+| **邮件服务** | SMTP（QQ/163/Gmail/Outlook） |
+| **时间处理** | 自研TimeParser + pytz |
 | **数据验证** | Pydantic v2 |
 
 详细技术选型请参考 [技术方案文档](技术方案文档.md)。
@@ -114,21 +114,22 @@ AIPersonalAssistant/
 
 ## 📝 开发进度
 
-### Phase 1: 基础架构搭建 🚧 进行中
-- [ ] 项目初始化
-- [ ] Google API集成
-- [ ] 数据模型和工具类
+### Phase 1: 基础架构搭建 ✅ 已完成
+- [x] 项目初始化
+- [x] 配置管理和日志系统
+- [x] 数据模型和工具类
 
-### Phase 2: 核心工具开发 ⏳ 待开始
-- [ ] CalendarTool开发
-- [ ] GmailTool开发
-- [ ] TimeParser优化
+### Phase 2: 核心工具开发 ✅ 已完成
+- [x] CalendarTool开发（SQLite本地存储）
+- [x] GmailTool开发（SMTP邮件发送）
+- [x] TimeParser优化（中文自然语言时间解析）
 
-### Phase 3: Agent工作流开发 ⏳ 待开始
-- [ ] 意图识别模块
-- [ ] 时间推理模块
-- [ ] 冲突检测模块
-- [ ] LangGraph整合
+### Phase 3: Agent工作流开发 ✅ 基本完成
+- [x] 意图识别模块（LLM + 规则降级）
+- [x] 时间推理模块
+- [x] 冲突检测模块
+- [x] 执行引擎（日历 + 邮件）
+- [x] LangGraph六节点工作流整合
 
 详细任务分解见 [技术方案文档](技术方案文档.md#-开发任务分解)。
 
@@ -136,18 +137,25 @@ AIPersonalAssistant/
 
 ## 🔐 认证配置
 
-### Google API认证
+### 环境变量配置
 
-1. 访问 [Google Cloud Console](https://console.cloud.google.com/)
-2. 创建新项目并启用 Calendar API 和 Gmail API
-3. 配置 OAuth Consent Screen
-4. 下载 `credentials.json` 到项目根目录
-5. 首次运行会自动打开浏览器进行授权
+1. 复制 `.env.example` 为 `.env`
+2. 编辑 `.env` 填入配置：
 
-所需 OAuth Scopes：
-- `https://www.googleapis.com/auth/calendar`
-- `https://www.googleapis.com/auth/gmail.send`
-- `https://www.googleapis.com/auth/userinfo.email`
+```bash
+# DeepSeek API（可选，无Key时自动使用规则匹配）
+DEEPSEEK_API_KEY=sk-your-key-here
+
+# SMTP邮件（可选，未配置时优雅降级）
+EMAIL_SENDER=your-email@qq.com
+EMAIL_PASSWORD=your-smtp-auth-code
+```
+
+### 邮箱授权码获取
+
+- **QQ邮箱**：设置 → 账户 → POP3/SMTP服务 → 生成授权码
+- **163邮箱**：设置 → POP3/SMTP/IMAP → 开启 → 新增授权码
+- **Gmail**：需要开启"应用专用密码"
 
 ---
 

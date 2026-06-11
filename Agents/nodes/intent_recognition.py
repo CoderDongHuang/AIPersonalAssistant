@@ -143,18 +143,10 @@ def _recognize_with_rules(user_input: str) -> Dict[str, Any]:
 
     user_input_lower = user_input.lower()
 
-    # Simple keyword matching
-    if any(word in user_input_lower for word in ["有什么", "查询", "查看", "日程", "安排"]):
-        return {
-            "action": "query_events",
-            "confidence": 0.6,
-            "parameters": {
-                "action": "query_events",
-                "date": user_input
-            }
-        }
+    # Simple keyword matching — order matters: check create/delete before query
+    import re
 
-    elif any(word in user_input_lower for word in ["改到", "改在", "调整", "移到", "换到"]):
+    if any(word in user_input_lower for word in ["改到", "改在", "调整", "移到", "换到"]):
         # Extract event name and times from input
         event_name = ""
         source_time = ""
@@ -165,7 +157,6 @@ def _recognize_with_rules(user_input: str) -> Dict[str, Any]:
             event_name = "会议"
 
         # Try to extract time expressions
-        import re
         time_patterns = re.findall(r'(?:下|这|本)?周[一二三四五六日]|[明后]天|今天', user_input)
         if len(time_patterns) >= 2:
             source_time = time_patterns[0]
@@ -188,7 +179,7 @@ def _recognize_with_rules(user_input: str) -> Dict[str, Any]:
             }
         }
 
-    elif any(word in user_input_lower for word in ["创建", "新建", "添加", "安排一个"]):
+    elif any(word in user_input_lower for word in ["创建", "新建", "添加", "安排一个", "安排个", "预定"]):
         return {
             "action": "create_event",
             "confidence": 0.6,
@@ -206,6 +197,16 @@ def _recognize_with_rules(user_input: str) -> Dict[str, Any]:
             "parameters": {
                 "action": "delete_event",
                 "event_name": ""
+            }
+        }
+
+    elif any(word in user_input_lower for word in ["有什么", "查询", "查看", "日程", "安排"]):
+        return {
+            "action": "query_events",
+            "confidence": 0.6,
+            "parameters": {
+                "action": "query_events",
+                "date": user_input
             }
         }
 

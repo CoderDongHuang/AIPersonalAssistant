@@ -336,7 +336,8 @@ class LocalCalendarService:
         Find available time slots on a given date
 
         Args:
-            date: Date to search
+            date: Date(datetime or date) to search — if date has no time component,
+                  it is treated as midnight of that day.
             duration_minutes: Required duration in minutes
             preferred_times: Preferred time slots like ['09:00', '14:00', '16:00']
 
@@ -345,6 +346,11 @@ class LocalCalendarService:
         """
         if preferred_times is None:
             preferred_times = ['09:00', '10:00', '14:00', '15:00', '16:00']
+
+        # Ensure we have a datetime (not date) for .replace(hour=..., minute=...)
+        from datetime import date as date_type
+        if isinstance(date, date_type) and not isinstance(date, datetime):
+            date = datetime.combine(date, datetime.min.time())
 
         available_slots = []
 

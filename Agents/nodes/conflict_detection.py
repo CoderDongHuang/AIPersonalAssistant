@@ -61,8 +61,9 @@ def conflict_detection_node(state: AgentState) -> Dict[str, Any]:
 
             if conflicts:
                 # Has conflicts - find alternative slots
+                # Keep as datetime (not .date()) for replace() with time fields
                 suggested_slots = calendar_service.find_available_slots(
-                    target_time.date(),
+                    target_time,
                     duration_minutes=60
                 )
 

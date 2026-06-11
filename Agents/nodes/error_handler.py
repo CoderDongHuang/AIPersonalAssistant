@@ -84,8 +84,13 @@ def generate_conflict_response(conflict_result) -> str:
     if conflict_result.conflicting_events:
         response += "📅 冲突的事件：\n"
         for event in conflict_result.conflicting_events[:3]:  # Show max 3
-            title = event.get("title", "未命名事件")
-            start = event.get("start_time", "")
+            # Handle both Pydantic models and plain dicts
+            if hasattr(event, "title"):
+                title = event.title
+                start = event.start_time
+            else:
+                title = event.get("title", "未命名事件")
+                start = event.get("start_time", "")
             if hasattr(start, "strftime"):
                 start_str = start.strftime("%H:%M")
             else:
