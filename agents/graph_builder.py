@@ -37,9 +37,15 @@ def should_plan_or_error(state: AgentState) -> Literal["task_planning", "error_h
         return "error_handler"
 
 
-def should_check_conflicts(state: AgentState) -> Literal["conflict_detection", "execution_engine"]:
-    """Route from task_planning - check conflicts only for reschedule/create actions"""
-    action = state.get("intent", {}).get("action", "")
+def should_check_conflicts(state: AgentState) -> Literal["conflict_detection", "execution_engine", "error_handler"]:
+    """Route from task_planning — check conflicts, go to execution, or handle error"""
+    action_plan = state.get("action_plan")
+
+    # If task planning failed, route to error handler
+    if not action_plan:
+        return "error_handler"
+
+    action = action_plan.get("action", "")
 
     if action in ["reschedule_event", "create_event"]:
         return "conflict_detection"
@@ -110,7 +116,8 @@ def build_agent_graph():
         path=should_check_conflicts,
         path_map={
             "conflict_detection": "conflict_detection",
-            "execution_engine": "execution_engine"
+            "execution_engine": "execution_engine",
+            "error_handler": "error_handler",
         }
     )
 
