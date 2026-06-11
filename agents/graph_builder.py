@@ -30,7 +30,8 @@ def should_continue(state: AgentState) -> Literal["time_reasoning", "error_handl
 
 def should_plan_or_error(state: AgentState) -> Literal["task_planning", "error_handler"]:
     """Route from time_reasoning to task_planning or error_handler"""
-    if state.get("parsed_times") and state.get("source_time"):
+    # Route to task_planning if any time was successfully parsed
+    if state.get("parsed_times") and len(state.get("parsed_times", {})) > 0:
         return "task_planning"
     else:
         return "error_handler"

@@ -62,16 +62,22 @@ def intent_recognition_node(state: AgentState) -> Dict[str, Any]:
 
     try:
         # Try to use LLM for intent recognition
-        if OpenAI and settings.OPENAI_API_KEY:
+        api_key = settings.get_llm_api_key()
+        if OpenAI and api_key:
             intent = _recognize_with_llm(user_input)
         else:
             # Fallback to rule-based recognition
-            logger.warning("Using rule-based intent recognition (no API key)")
+            logger.info("Using rule-based intent recognition (no API key configured)")
             intent = _recognize_with_rules(user_input)
 
         action = intent.get("action", "unknown")
         confidence = intent.get("confidence", 0.0)
         parameters = intent.get("parameters", {})
+
+        # Ensure action is always available in the parameters/intent dict
+        # (LLM may put it only at top level; rule-based includes it in parameters)
+        if "action" not in parameters:
+            parameters["action"] = action
 
         logger.info(f"✅ Intent recognized: {action} (confidence: {confidence})")
 
@@ -93,13 +99,21 @@ def intent_recognition_node(state: AgentState) -> Dict[str, Any]:
 
 
 def _recognize_with_llm(user_input: str) -> Dict[str, Any]:
-    """Use OpenAI-compatible API for intent recognition"""
+    """Use OpenAI-compatible API (DeepSeek) for intent recognition"""
 
     try:
-        client = OpenAI(
-            api_key=settings.OPENAI_API_KEY,
-            base_url=settings.get_openai_base_url()
-        )
+        # Create client — use explicit http_client to avoid httpx 0.28 proxy issues
+        import httpx
+        http_client = httpx.Client(proxy=None) if hasattr(httpx, 'Client') else None
+
+        client_kwargs = {
+            "api_key": settings.get_llm_api_key(),
+            "base_url": settings.get_openai_base_url(),
+        }
+        if http_client is not None:
+            client_kwargs["http_client"] = http_client
+
+        client = OpenAI(**client_kwargs)
 
         prompt = INTENT_RECOGNITION_PROMPT.format(user_input=user_input)
 
@@ -115,26 +129,25 @@ def _recognize_with_llm(user_input: str) -> Dict[str, Any]:
 
         result_text = response.choices[0].message.content.strip()
 
-        # 1. 移除 LLM 可能返回的 markdown 代码块
+        # Remove markdown code fences if present
         if result_text.startswith("```json"):
-            result_text = result_text[7:]  # 去掉开头的 ```json
-            if result_text.endswith("```"):
-                result_text = result_text[:-3]  # 去掉结尾的 ```
+            result_text = result_text[7:]
+        if result_text.startswith("```"):
+            result_text = result_text[3:]
+        if result_text.endswith("```"):
+            result_text = result_text[:-3]
 
-        # 2. 解析 JSON
+        # Parse JSON
         intent = json.loads(result_text.strip())
         return intent
 
     except json.JSONDecodeError as e:
-        # 仅捕获 JSON 解析失败的异常
-        logger.error(f"Failed to parse LLM response as JSON: {e}")
-        logger.debug(f"Raw response: {result_text}")
-        # 降级规则匹配
+        logger.warning(f"Failed to parse LLM response as JSON, falling back to rules: {e}")
         return _recognize_with_rules(user_input)
 
     except Exception as e:
-        # 捕获 API 调用等其他可能的异常
-        logger.error(f"LLM API call failed: {e}")
+        # API call or client creation error — gracefully fall back to rules
+        logger.warning(f"LLM unavailable ({type(e).__name__}: {e}), using rule-based recognition")
         return _recognize_with_rules(user_input)
 
 
