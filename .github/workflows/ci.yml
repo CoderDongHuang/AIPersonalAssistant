@@ -19,9 +19,23 @@ jobs:
         python-version: ["3.10", "3.11", "3.12"]
 
     env:
-      # Ensure no accidental LLM API calls in CI
+      # LLM — disable to force rule-based fallback
       DEEPSEEK_API_KEY: ""
       OPENAI_API_KEY: ""
+      OPENAI_BASE_URL: "https://api.deepseek.com/v1"
+      OPENAI_MODEL: "gpt-4-turbo"
+      # App
+      APP_ENV: "development"
+      LOG_LEVEL: "INFO"
+      DEFAULT_TIMEZONE: "Asia/Shanghai"
+      # Email — disable
+      EMAIL_SENDER: ""
+      EMAIL_PASSWORD: ""
+      EMAIL_SMTP_SERVER: ""
+      EMAIL_NOTIFICATION_ENABLED: "true"
+      # Force UTF-8 encoding (especially on Windows)
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
 
     steps:
       - uses: actions/checkout@v4
@@ -44,23 +58,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Setup CI environment
-        shell: bash
-        run: |
-          cp .env.ci .env
-          echo "=== CI .env ===" && cat .env
-
       - name: Run unit tests
-        run: python -m pytest tests/unit/ -v --tb=short
+        run: python -m pytest tests/unit/ -v --tb=short --no-header
 
       - name: Run integration tests
-        run: python -m pytest tests/integration/ -v --tb=short
+        run: python -m pytest tests/integration/ -v --tb=short --no-header
 
       - name: Generate coverage report
         run: |
           python -m pytest tests/unit/ tests/integration/ \
-            --cov=. --cov-report=xml --cov-report=term-missing \
-            --ignore=venv -q
+            --cov=. --cov-report=term-missing --ignore=venv -q
 
   lint:
     name: Lint & Type Check
