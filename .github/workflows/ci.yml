@@ -70,9 +70,7 @@ jobs:
         run: python -m pytest tests/integration/ -v --tb=long --no-header
 
       - name: Generate coverage report
-        run: |
-          python -m pytest tests/unit/ tests/integration/ \
-            --cov=. --cov-report=term-missing --ignore=venv -q -p no:cacheprovider
+        run: python -m pytest tests/unit/ tests/integration/ --cov=. --cov-report=term-missing --ignore=venv -q
 
   lint:
     name: Lint & Type Check
