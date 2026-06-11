@@ -1,0 +1,45 @@
+# Personal AI Assistant — Docker Compose
+#
+# Usage:
+#   docker-compose up          # Interactive mode (requires TTY)
+#   docker-compose run --rm assistant "明天有什么安排？"
+#   docker-compose run --rm assistant --check
+
+version: "3.9"
+
+services:
+  assistant:
+    build: .
+    image: ai-personal-assistant:latest
+    container_name: ai-assistant
+    stdin_open: true    # Required for interactive CLI
+    tty: true           # Required for rich console output
+    env_file:
+      - .env
+    environment:
+      - APP_ENV=production
+      - LOG_LEVEL=INFO
+    volumes:
+      # Persist calendar data outside the container
+      - ./data/calendar.db:/app/calendar.db
+      # Persist logs
+      - ./logs:/app/logs
+    restart: "no"
+
+  # ── Development mode with hot-reload ──
+  dev:
+    build: .
+    image: ai-personal-assistant:dev
+    container_name: ai-assistant-dev
+    stdin_open: true
+    tty: true
+    env_file:
+      - .env
+    environment:
+      - APP_ENV=development
+      - LOG_LEVEL=DEBUG
+    volumes:
+      - .:/app                    # Mount source for hot-reload
+      - ./data/calendar.db:/app/calendar.db
+    restart: "no"
+    command: python cli.py
