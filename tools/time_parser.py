@@ -76,8 +76,8 @@ class TimeParser:
         elif '后天' in expression:
             return (base_time + timedelta(days=2)).replace(hour=0, minute=0, second=0, microsecond=0)
 
-        # "下周X" / "这周X"
-        week_match = re.search(r'(?:下|这|本)周([一二三四五六日])', expression)
+        # "下周X" / "这周X" / "周X"
+        week_match = re.search(r'(?:下|这|本)?周([一二三四五六日])', expression)
         if week_match:
             weekday_str = week_match.group(1)
             weekday = self.WEEKDAYS.get(f'周{weekday_str}')
@@ -88,8 +88,13 @@ class TimeParser:
 
                 if '下周' in expression:
                     days_ahead += 7
-                elif days_ahead <= 0:
-                    days_ahead += 7
+                elif '这周' in expression or '本周' in expression:
+                    if days_ahead <= 0:
+                        days_ahead += 7
+                else:
+                    # Just "周X" - assume next occurrence
+                    if days_ahead <= 0:
+                        days_ahead += 7
 
                 target_date = base_time + timedelta(days=days_ahead)
                 return target_date.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -101,6 +106,7 @@ class TimeParser:
             return (base_time + timedelta(days=days)).replace(hour=0, minute=0, second=0, microsecond=0)
 
         return None
+
 
     def _apply_time_period(self, expression: str, dt: datetime) -> datetime:
         """Apply time period (morning, afternoon, etc.) to datetime"""

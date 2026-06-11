@@ -15,10 +15,13 @@ class GmailTool(BaseTool):
 
     name: str = "email"
     description: str = "发送邮件通知"
+    email_service: SMTPEmailService = None
 
     def __init__(self):
+        # Initialize service first
+        object.__setattr__(self, 'email_service', SMTPEmailService())
+        # Then call parent __init__
         super().__init__()
-        self.email_service = SMTPEmailService()
 
     def _run(self, query: str) -> str:
         """Execute email operation"""
@@ -40,5 +43,12 @@ class GmailTool(BaseTool):
         )
 
 
-# Global instance
-gmail_tool = GmailTool()
+# Global instance - delay initialization to avoid circular imports
+_gmail_tool_instance = None
+
+def get_gmail_tool():
+    """Get or create GmailTool instance"""
+    global _gmail_tool_instance
+    if _gmail_tool_instance is None:
+        _gmail_tool_instance = GmailTool()
+    return _gmail_tool_instance

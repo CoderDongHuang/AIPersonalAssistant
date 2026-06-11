@@ -17,11 +17,15 @@ class CalendarTool(BaseTool):
 
     name: str = "calendar"
     description: str = "查询、创建、更新日历事件"
+    calendar_service: LocalCalendarService = None
+    time_parser: TimeParser = None
 
     def __init__(self):
+        # Initialize services first
+        object.__setattr__(self, 'calendar_service', LocalCalendarService())
+        object.__setattr__(self, 'time_parser', TimeParser())
+        # Then call parent __init__
         super().__init__()
-        self.calendar_service = LocalCalendarService()
-        self.time_parser = TimeParser()
 
     def _run(self, query: str) -> str:
         """Execute calendar operation"""
@@ -54,5 +58,12 @@ class CalendarTool(BaseTool):
         return self.calendar_service.check_conflicts(start_time, end_time)
 
 
-# Global instance
-calendar_tool = CalendarTool()
+# Global instance - delay initialization to avoid circular imports
+_calendar_tool_instance = None
+
+def get_calendar_tool():
+    """Get or create CalendarTool instance"""
+    global _calendar_tool_instance
+    if _calendar_tool_instance is None:
+        _calendar_tool_instance = CalendarTool()
+    return _calendar_tool_instance

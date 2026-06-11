@@ -62,8 +62,8 @@ class LocalCalendarService:
                 'location': '会议室A',
                 'start_time': (now + timedelta(days=2, hours=14)).isoformat(),
                 'end_time': (now + timedelta(days=2, hours=15)).isoformat(),
-                'attendees': 'alice@example.com,bob@example.com,charlie@example.com',
-                'organizer': 'manager@example.com'
+                'attendees': '1218798773@qq.com,3064801244@qq.com,1368382140@qq.com',
+                'organizer': '1218798773@qq.com'
             },
             {
                 'id': 'evt_002',
@@ -72,8 +72,8 @@ class LocalCalendarService:
                 'location': '线上会议（腾讯会议）',
                 'start_time': (now + timedelta(days=3, hours=10)).isoformat(),
                 'end_time': (now + timedelta(days=3, hours=11, minutes=30)).isoformat(),
-                'attendees': 'product@example.com,dev@example.com',
-                'organizer': 'pm@example.com'
+                'attendees': '1218798773@qq.com,3064801244@qq.com',
+                'organizer': '1218798773@qq.com'
             },
             {
                 'id': 'evt_003',
@@ -82,10 +82,11 @@ class LocalCalendarService:
                 'location': '培训室B',
                 'start_time': (now + timedelta(days=4, hours=15)).isoformat(),
                 'end_time': (now + timedelta(days=4, hours=16, minutes=30)).isoformat(),
-                'attendees': 'team@example.com',
-                'organizer': 'tech_lead@example.com'
+                'attendees': '1218798773@qq.com,3064801244@qq.com,1368382140@qq.com',
+                'organizer': '1218798773@qq.com'
             }
         ]
+
 
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
